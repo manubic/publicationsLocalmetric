@@ -26,7 +26,7 @@ class PublicationsManager:
         urls: list[str] = [url for url in menuSheet.getAllRows(menuSheetSheets[0])]
 
         if "Menu" in menuSheetSheets:
-            return [[[item[0], item[1]] for item in menuSheet.getAllRows('Menu')], False]
+            return [[[item[0], item[1]] if len(item) > 1 else [item[0]] for item in menuSheet.getAllRows('Menu')], False]
         return [
             urls,
             self.menuChat.getMenuFromIMG if urls[0][0].split('.')[-1] in {'jpg', 'jpeg', 'png', 'webp', 'gif'} else self.menuChat.getMenuOrServicesFromHTML,
@@ -43,6 +43,6 @@ class PublicationsManager:
             items = itemsInfo[0]
         
         publicationsExample: list[str] = [row[1] for row in self.publicationsSheet.getAllRows(clientName)[-3::]]
-        newPublications: list[str] = self.publicationsChat.createPublications(items, publicationsExample)
+        newPublications: list[str] = self.publicationsChat.createPublications(items, publicationsExample, clientName)
         
         self.publicationsSheet.insertRows([["", publication] for publication in newPublications['publications']], clientName)

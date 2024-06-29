@@ -34,5 +34,5 @@ publicationsManager = PublicationsManager(
     creds,
 )
 
-publicationsManager.insertPublications("Hatillo")
+publicationsManager.insertPublications("Urogallo")
 

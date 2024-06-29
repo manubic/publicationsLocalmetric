@@ -28,7 +28,7 @@ class MenuChat(Chat):
         super().__init__(OpenAIclient, firstQuery)
 
     def getMenuOrServicesFromHTML(self, urls: list[str]) -> dict[str, str]:
-        HTML: str = ''.join([BeautifulSoup(requests.get(url).content, 'html.parser').get_text() for url in urls])
+        HTML: str = ''.join([BeautifulSoup(requests.get(url[0]).content, 'html.parser').get_text() for url in urls])
         query: str = HTML + '''
             Escribeme el titulo y una pequeña descripcion de cada producto de este menu en formato json:
                 - Si es un restaurante sacame solamente el producto con su descripcion por cada plato o bebida.
@@ -49,9 +49,10 @@ class MenuChat(Chat):
     
     def getMenuFromIMG(self, urlsIMG: list[str]) -> dict[str, list[list[str]]]:
         query: str = '''
-            Escribeme el titulo y una pequeña descripcion de cada producto de este menu en formato json,
-            solamente sacame el producto con su descripcion por cada plato o bebida.
-            Hazlo con este formato: {Items: [[Pescado, descripcion del pescado], [Carne, descripcion de la carne], etc...]}.
+            Escribeme el titulo y una pequeña descripcion de cada producto de este menu en formato json:
+                - Si es un restaurante sacame solamente el producto con su descripcion por cada plato o bebida.
+                - Si no es un restaurante sacame solamente el servicio con su descripcion por cada servicio.
+            Hazlo con este formato: {Items: [[Titulo comida o servivio, descripcion de la comida o servivio], [Titulo comida o servivio, descripcion de la comida o servivio], etc...]}.
             No saques los precios de los productos. Y descripción si en el texto viene el producto y su descripcion.
         '''
         result = []
@@ -89,16 +90,18 @@ class PublicationsChat(Chat):
         '''
         super().__init__(OpenAIclient, query)
 
-    def createPublications(self, items: list[list[str]], examples: list[str]) -> list[str]:
-        parsedItems = ''.join([f'- {product}: {description}\n' for product, description in items])
+    def createPublications(self, items: list[list[str]], examples: list[str], clientName: str) -> list[str]:
+        parsedItems = ''.join([f'- {item[0]}: {item[1]}\n' if len(item) > 1 else f'- {item[0]}' for item in items])
         query: str = '''
             En base a este menu:
                 ITEMS
-            Y en base a estas publicaciones:
+            Y en base a estas publicaciones que te daran un ejemplo y el nombre de la ciudad donde se encuentra el restaurante:
                 EXAMPLES
             Creame 3 nuevas publicaciones con productos del menu y una publicacion referenciando el tipo de comida y la cultura para que el local resulte atractivo.
+            Las publicaciones no deben tener hashtags y al final debes añadir esta frase: (salto de linea) (emoji location)Si estas buscando un restaurante en (aqui el nombre de la ciudad), ¡En CLIENTNAME te esperamos!.
+            Trata de poner emojis y separar cada frase con saltos de linea.
             Devuelveme las publicaciones en formato json, hazlo con este formato: {publications: [texto publicacion 1, texto publicacion 2, etc...]}.
-        '''.replace("ITEMS", parsedItems).replace("EXAMPLES", '\n'.join(examples))
+        '''.replace("ITEMS", parsedItems).replace("EXAMPLES", '\n'.join(examples)).replace("CLIENTNAME", clientName)
 
         self.messages.append({"role": "user", "content": query})
         response = self.OpenAIclient.chat.completions.create(
