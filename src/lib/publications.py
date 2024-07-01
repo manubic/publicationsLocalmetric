@@ -1,11 +1,11 @@
-from lib.chats import MenuChat, PublicationsChat
+from lib.chats import MenuModel, PublicationsModel
 from lib.sheets import Sheets
 from lib.drive import Drive
 
 
 
 class PublicationsManager:
-    def __init__(self, menuChat: MenuChat, publicationsChat: PublicationsChat, 
+    def __init__(self, menuChat: MenuModel, publicationsChat: PublicationsModel, 
                  publicationsSheet: Sheets, driveService: Drive, creds) -> None:
 
         self.menuChat = menuChat

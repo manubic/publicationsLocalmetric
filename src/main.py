@@ -1,5 +1,5 @@
 from lib.publications import PublicationsManager
-from lib.chats import MenuChat, PublicationsChat
+from lib.chats import MenuModel, PublicationsModel
 from lib.sheets import Sheets
 from lib.drive import Drive
 from google.auth.transport.requests import Request
@@ -27,8 +27,8 @@ config = config.Config()
 creds = get_credentials(config)
 
 publicationsManager = PublicationsManager(
-    MenuChat(config.client),
-    PublicationsChat(config.client),
+    MenuModel(config.client),
+    PublicationsModel(config.client),
     Sheets('1uWaEPxQNS0SIMCCEVrB3Soa4NriDOh0oIADN6SeQ6rM', creds),
     Drive(creds),
     creds,

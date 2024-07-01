@@ -36,7 +36,6 @@ class MenuChat(Chat):
             Hazlo con este formato: {Items: [[Titulo comida o servivio, descripcion de la comida o servivio], [Titulo comida o servivio, descripcion de la comida o servivio], etc...]}.
             No saques los precios de los productos. Y descripción si en el texto viene el producto y su descripcion.
         '''
-        print(query)
 
         self.messages.append({"role": "user", "content": query.replace("\n", "").replace('  ', '')})
         response = self.OpenAIclient.chat.completions.create(
