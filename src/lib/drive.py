@@ -16,5 +16,5 @@ class Drive:
             supportsAllDrives=True
         ).execute()
  
-        return raw_results['files'][0]['id'] 
+        return raw_results['files'][0]['id'] if len(raw_results['files']) > 0 else False 
         

@@ -18,10 +18,10 @@ class Sheets:
         values: list[str|int] = result.get("values", [])
         return values
     
-    def getSheets(self) -> dict[str, list[str|int]]:
+    def getSheets(self, resFormat = list) -> set[str]:
         service = build("sheets", "v4", credentials=self.creds)
         sheets = service.spreadsheets().get(spreadsheetId=self.sample_spreadsheet_id).execute().get('sheets', '')
-        return [sheet['properties']['title'] for sheet in sheets]
+        return resFormat(sheet['properties']['title'] for sheet in sheets)
 
     def insertRows(self, values: list, sheetName: str, range_="") -> None:
         body: dict[str, list[list[str]]] = {"values": values}

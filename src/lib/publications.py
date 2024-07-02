@@ -27,11 +27,15 @@ class PublicationsManager:
         menuSheetID: str = self.driveService.search_fileOrFolder(f"mimeType = 'application/vnd.google-apps.spreadsheet' and '{menuFolderID}' in parents")
         return menuSheetID
     
-    def getAccountsID(self) -> dict[str, str]:
-        return {row[2].split(' - ')[1]: row[2].split(' - ')[0].replace('_', '/') for row in self.emailsSheet.getAllRows('Clientes')[1:]}
+    def getAccountsID(self, dict = True) -> dict[str, str]:
+        return (
+            {row[2].split(' - ')[1]: row[2].split(' - ')[0].replace('_', '/') for row in self.emailsSheet.getAllRows('Clientes')[1:]} if dict
+            else [row[5].replace('_', '/') for row in self.emailsSheet.getAllRows('Clientes')[1:] if len(row) > 5])
     
     def get_itemsInfo(self, clientName: str) -> list[list | bool | Sheets | Callable]:
-        menuSheet: Sheets = Sheets(self.getSheetMenuID(clientName), self.creds)
+        clientMenuSheetID = self.getSheetMenuID(clientName)
+        if not clientMenuSheetID: return False
+        menuSheet: Sheets = Sheets(clientMenuSheetID, self.creds)
         menuSheetSheets: list[str] = menuSheet.getSheets()
         urls: list[str] = [url for url in menuSheet.getAllRows(menuSheetSheets[0])]
 
@@ -41,14 +45,16 @@ class PublicationsManager:
         self.menuChat = MenuModel(self.client)
         return [
             urls,
-            self.menuChat.getMenuFromIMG if urls[0][0].split('?')[0].split('.')[-1] in {'jpg', 'jpeg', 'png', 'webp', 'gif'} else self.menuChat.getMenuOrServicesFromHTML,
+            self.menuChat.getMenuFromFile if urls[0][0].split('?')[0].split('.')[-1] in {'jpg', 'jpeg', 'png', 'webp', 'gif', 'pdf'} else self.menuChat.getMenuOrServicesFromHTML,
             menuSheet,
         ]
 
-    def insertPublicationsToSheet(self, clientName: str) -> None:
+    def insertPublicationsToSheet(self, clientName: str) -> None | bool:
         itemsInfo: list[list | bool | Sheets | Callable] = self.get_itemsInfo(clientName)
+        if not itemsInfo: return False
         if itemsInfo[1]:
             items: dict[str, list[list[str]]] = itemsInfo[1](itemsInfo[0])
+            if not items: return False
             itemsInfo[2].create_sheet('Menu')
             itemsInfo[2].insertRows([[item[0], item[1]] for item in items['Items']], 'Menu')
         else:
@@ -67,7 +73,7 @@ class PublicationsManager:
         for publication in self.publicationsSheet.getAllRows(clientName)[1:]:
             if len(publication) != 7 or publication[5] < formattedDate: continue
 
-            mediaContent: str = self.localmetric.uploadMediaFile(publication[4]).replace('\n', '')
+            mediaContent: str = self.localmetric.uploadDriveURLMediaFile(publication[4])
             query: str = """
                 INSERT INTO scheduled_local_posts(
                     active, language_code, summary, call_to_action_type, 
