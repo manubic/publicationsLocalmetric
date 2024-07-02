@@ -23,16 +23,18 @@ class Sheets:
         sheets = service.spreadsheets().get(spreadsheetId=self.sample_spreadsheet_id).execute().get('sheets', '')
         return [sheet['properties']['title'] for sheet in sheets]
 
-    def insertRows(self, values: list, sheet_name: str) -> None:
+    def insertRows(self, values: list, sheetName: str, range_="") -> None:
         body: dict[str, list[list[str]]] = {"values": values}
-        allRows = self.getAllRows(sheet_name) 
-        range_name: list[list[str]] = f"{sheet_name}!A{len(allRows)+1}:B{len(allRows)+len(values)+1}"
+  
+        if not range_:
+            allRows = self.getAllRows(sheetName)
+            range_: list[list[str]] = f"A{len(allRows)+1}:B{len(allRows)+len(values)+1}"
         result = (
             self.service.spreadsheets()
             .values()
             .update(
                 spreadsheetId=self.sample_spreadsheet_id,
-                range=range_name,
+                range=f'{sheetName}!{range_}',
                 valueInputOption='RAW',
                 body=body,
             )

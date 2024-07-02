@@ -17,7 +17,7 @@ class Chat:
 
 
 
-class MenuChat(Chat):
+class MenuModel(Chat):
     def __init__(self, OpenAIclient: OpenAI) -> None:
         firstQuery: str = '''
             Tu objetivo es leer el menu de un restaurante.
@@ -27,7 +27,7 @@ class MenuChat(Chat):
         '''
         super().__init__(OpenAIclient, firstQuery)
 
-    def getMenuOrServicesFromHTML(self, urls: list[str]) -> dict[str, str]:
+    def getMenuOrServicesFromHTML(self, urls: list[str]) -> dict[str, list[list[str]]]:
         HTML: str = ''.join([BeautifulSoup(requests.get(url[0]).content, 'html.parser').get_text() for url in urls])
         query: str = HTML + '''
             Escribeme el titulo y una pequeña descripcion de cada producto de este menu en formato json:
@@ -81,7 +81,7 @@ class MenuChat(Chat):
 
 
 
-class PublicationsChat(Chat):
+class PublicationsModel(Chat):
     def __init__(self, OpenAIclient: OpenAI) -> None:
         query: str = '''
             Eres un experto en creacion de contenido para redes sociales tu objetivo es siempre crear el contenido que mas genera interacciones, curiosidad y es relevante para el usuario.
