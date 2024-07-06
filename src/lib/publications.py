@@ -66,16 +66,16 @@ class PublicationsManager:
         allPublications = self.publicationsSheet.getAllRows(clientName)
         newPublications: list[str] = self.publicationsChat.createPublications(items, [random.choice(allPublications[2:])[1] for _ in range(3)], clientName)
  
-        postDates = [(datetime.now() + timedelta(days=(i*7)+1)).strftime('%Y-%m-%d 15:00:00') for i in range(len(newPublications['publications']))] 
+        postDates = [(datetime.now() + timedelta(days=(i*7)+1)).strftime('%Y-%m-%d 12:00:00') for i in range(len(newPublications['publications']))] 
         self.publicationsSheet.insertRows([["", publication, "", "", "", postDates[i]] for i, publication in enumerate(newPublications['publications'])], clientName)
     
     def schedulePublications(self, clientName: str) -> None:
         accountsID: dict[str, str] = self.getAccountsID()
         lenguage: str = self.database.query(f'SELECT language_code FROM locations WHERE account_id = "{accountsID[clientName]}"')[0][0]
-        formattedDate: str = datetime.now()
+        formattedDate: datetime = datetime.now()
         
         for publication in self.publicationsSheet.getAllRows(clientName)[1:]:
-            if len(publication) != 7 or publication[5] < formattedDate.strftime('%Y-%m-%d %H:%M:%S'): continue            
+            if len(publication) != 7 or datetime.fromisoformat(publication[5]).day != formattedDate.day: continue            
             locationsID: list[str] = [
                 locationID 
                 for locationID in publication[6].split(', ')
@@ -88,10 +88,11 @@ class PublicationsManager:
             mediaContent: str = self.localmetric.uploadDriveURLMediaFile(publication[4])
             newScheduledPostID: str = self.localmetric.createScheduledPost([
                 lenguage, publication[1], publication[2], 
-                publication[3], mediaContent, datetime.fromisoformat(publication[5]).strftime('%Y-%m-%dT%H:%M:%S.00Z'),
+                publication[3], mediaContent, (datetime.fromisoformat(publication[5]) - timedelta(hours=2)).strftime('%Y-%m-%dT%H:%M:%S.00Z'),
             ])
-            self.localmetric.createLocalPost([
+            newIDs: list[str] = self.localmetric.createLocalPost([
                 lenguage, publication[1], publication[2], 
                 publication[3], mediaContent, newScheduledPostID, 
-                (formattedDate).strftime('%Y-%m-%dT%H:%M:%S.00Z'), publicationAddedSites
+                (formattedDate).strftime('%Y-%m-%dT%H:%M:%S.00Z'), publicationAddedSites,
             ])
+            return newIDs

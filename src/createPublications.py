@@ -40,11 +40,7 @@ publicationsManager = PublicationsManager(
 values = publicationsManager.getAccountsID(dict=False)
 sheets = Sheets(config.GMBRedesSheetID, creds).getSheets(resFormat=set)
 database_result = sorted(SQL(config.DBUser, config.DBHost, config.DBName, config.DBPassword).query(f"SELECT name FROM accounts WHERE id IN ('{"', '".join(values).replace(' ', '')}') ORDER BY id"))
-# for i, client in enumerate(database_result): 
-#     print(client, i)
-#     if client[0] not in sheets or client[0] != "Bingo Plaza":
-#         continue
-#     print(client[0])
-#     result = publicationsManager.insertPublicationsToSheet(client[0])
-#     if result == False: print(client[0])
-print(publicationsManager.schedulePublications('Urogallo'))
+for i, client in enumerate(database_result): 
+    if client[0] not in sheets: continue
+    print(client, i)
+    result = publicationsManager.insertPublicationsToSheet(client[0])

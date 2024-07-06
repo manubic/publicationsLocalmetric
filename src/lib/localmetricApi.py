@@ -37,7 +37,7 @@ class Localmetric:
             json = {
                 "active": True, "language_code": options[0],
                 "summary": options[1], "call_to_action_type": options[2],
-                "call_to_action_url": options[3], "event_title": "",
+                "call_to_action_url": options[3] if options[2] != 'CALL' else '', "event_title": "",
                 "event_schedule_start": "", "event_schedule_end": "",
                 "state": "SCHEDULED", "media": [options[4]],
                 "topic_type": "STANDARD", "alert_type": "ALERT_TYPE_UNSPECIFIED",
@@ -52,7 +52,7 @@ class Localmetric:
             body = {
                     "id": f"localPosts/{''.join([str(random.randint(0, 9)) for _ in range(24)])}", "language_code": options[0],
                     "summary": options[1], "call_to_action_type": options[2],
-                    "call_to_action_url": options[3], "event_title": "",
+                    "call_to_action_url": options[3] if options[2] != 'CALL' else '', "event_title": "",
                     "event_schedule_start": "", "event_schedule_end": "", "state": "SCHEDULED",
                     "media": [options[4]], "search_url": "", "topic_type": "STANDARD", "alert_type": "ALERT_TYPE_UNSPECIFIED",
                     "offer_coupon_code": "", "offer_redeem_online_url": "", "offer_terms_conditions": "",
