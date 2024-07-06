@@ -6,6 +6,7 @@ from lib.localmetricApi import Localmetric
 from typing import Callable
 from datetime import datetime, timedelta
 from openai import OpenAI
+from calendar import monthrange
 import random
 
 
@@ -65,8 +66,13 @@ class PublicationsManager:
         self.publicationsChat = PublicationsModel(self.client)
         allPublications = self.publicationsSheet.getAllRows(clientName)
         newPublications: list[str] = self.publicationsChat.createPublications(items, [random.choice(allPublications[2:])[1] for _ in range(3)], clientName)
- 
-        postDates = [(datetime.now() + timedelta(days=(i*7)+1)).strftime('%Y-%m-%d 12:00:00') for i in range(len(newPublications['publications']))] 
+
+        postReference = datetime.fromisoformat(
+            f'{datetime.now().year}-{datetime.now().month}-30 12:00:00'
+        ) if self.publicationsSheet.getAllRows(clientName)[-1][5] < (
+            datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S'
+        ) else (datetime.fromisoformat(self.publicationsSheet.getAllRows(clientName)[-1][5]) + timedelta(days=6))
+        postDates = [(postReference + timedelta(days=(i*7)+1)).strftime('%Y-%m-%d 12:00:00') for i in range(len(newPublications['publications']))] 
         self.publicationsSheet.insertRows([["", publication, "", "", "", postDates[i]] for i, publication in enumerate(newPublications['publications'])], clientName)
     
     def schedulePublications(self, clientName: str) -> None:
