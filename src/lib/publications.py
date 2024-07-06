@@ -4,8 +4,9 @@ from lib.drive import Drive
 from lib.sql import SQL
 from lib.localmetricApi import Localmetric
 from typing import Callable
-from datetime import datetime
+from datetime import datetime, timedelta
 from openai import OpenAI
+import random
 
 
 
@@ -22,7 +23,8 @@ class PublicationsManager:
         self.creds = creds
     
     def getSheetMenuID(self, clientName: str) -> str:
-        clientFolderID: str = self.driveService.search_fileOrFolder(f"mimeType = 'application/vnd.google-apps.folder' and name = '{clientName}'")
+        clientFolderID: str = self.driveService.search_fileOrFolder(f'mimeType = "application/vnd.google-apps.folder" and name = "{clientName}"')
+        if not clientFolderID: return False
         menuFolderID: str = self.driveService.search_fileOrFolder(f"mimeType = 'application/vnd.google-apps.folder' and name = 'Menú' and '{clientFolderID}' in parents")
         menuSheetID: str = self.driveService.search_fileOrFolder(f"mimeType = 'application/vnd.google-apps.spreadsheet' and '{menuFolderID}' in parents")
         return menuSheetID
@@ -61,34 +63,35 @@ class PublicationsManager:
             items: list[list[str]] = itemsInfo[0]
         
         self.publicationsChat = PublicationsModel(self.client)
-        publicationsExample: list[str] = [row[1] for row in self.publicationsSheet.getAllRows(clientName)[-3::]]
-        newPublications: list[str] = self.publicationsChat.createPublications(items, publicationsExample, clientName)
-        
-        self.publicationsSheet.insertRows([["", publication] for publication in newPublications['publications']], clientName)
+        allPublications = self.publicationsSheet.getAllRows(clientName)
+        newPublications: list[str] = self.publicationsChat.createPublications(items, [random.choice(allPublications[2:])[1] for _ in range(3)], clientName)
+ 
+        postDates = [(datetime.now() + timedelta(days=(i*7)+1)).strftime('%Y-%m-%d 15:00:00') for i in range(len(newPublications['publications']))] 
+        self.publicationsSheet.insertRows([["", publication, "", "", "", postDates[i]] for i, publication in enumerate(newPublications['publications'])], clientName)
     
-    def insertPublicationsToDB(self, clientName: str) -> None:
-        lenguage = self.database.query(f'SELECT language_code FROM locations WHERE account_id = "{self.getAccountsID()[clientName]}"')[0][0]
-        formattedDate = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    def schedulePublications(self, clientName: str) -> None:
+        accountsID: dict[str, str] = self.getAccountsID()
+        lenguage: str = self.database.query(f'SELECT language_code FROM locations WHERE account_id = "{accountsID[clientName]}"')[0][0]
+        formattedDate: str = datetime.now()
         
         for publication in self.publicationsSheet.getAllRows(clientName)[1:]:
-            if len(publication) != 7 or publication[5] < formattedDate: continue
+            if len(publication) != 7 or publication[5] < formattedDate.strftime('%Y-%m-%d %H:%M:%S'): continue            
+            locationsID: list[str] = [
+                locationID 
+                for locationID in publication[6].split(', ')
+            ] if publication[6] != 'Account' else [
+                locationID[0]
+                for locationID in self.database.query(f'SELECT id FROM locations WHERE account_id = "{accountsID[clientName]}"')
+            ]
+            publicationAddedSites: dict[str, str] = [{"account_id": accountsID[clientName], "location_id": locationID} for locationID in locationsID]
 
             mediaContent: str = self.localmetric.uploadDriveURLMediaFile(publication[4])
-            query: str = """
-                INSERT INTO scheduled_local_posts(
-                    active, language_code, summary, call_to_action_type, 
-                    call_to_action_url, state, media, topic_type, alert_type, 
-                    publish_schedule, call_to_action_url_settings,
-                    create_time_internal, update_time_internal
-                ) 
-                VALUES (
-                    "1", "{}", "{}", "{}", "{}",
-                    "SCHEDULED", "{}", "STANDARD", "ALERT_TYPE_UNSPECIFIED",
-                    "{}", "RAW_URL", "{}", "{}"
-                );
-            """.replace('\n', '').replace('  ', '').format(
+            newScheduledPostID: str = self.localmetric.createScheduledPost([
                 lenguage, publication[1], publication[2], 
-                publication[3], mediaContent, publication[5],
-                formattedDate, formattedDate,
-            )
-            self.database.query(query)
+                publication[3], mediaContent, datetime.fromisoformat(publication[5]).strftime('%Y-%m-%dT%H:%M:%S.00Z'),
+            ])
+            self.localmetric.createLocalPost([
+                lenguage, publication[1], publication[2], 
+                publication[3], mediaContent, newScheduledPostID, 
+                (formattedDate).strftime('%Y-%m-%dT%H:%M:%S.00Z'), publicationAddedSites
+            ])

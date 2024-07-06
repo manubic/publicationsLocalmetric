@@ -31,23 +31,39 @@ class MenuModel(Chat):
             Escribeme el titulo y una pequeña descripcion de cada producto de este menu en formato json:
                 - Si es un restaurante sacame solamente el producto con su descripcion por cada plato o bebida.
                 - Si no es un restaurante sacame solamente el servicio con su descripcion por cada servicio.
-            Hazlo con este formato y solamente este formato sin inventarte ningun otro tipo de formato: {Items: [[Titulo comida o servivio, descripcion de la comida o servivio], [Titulo comida o servivio, descripcion de la comida o servivio], etc...]}.
+            Hazlo con este formato: {Items: [[Titulo comida o servivio, descripcion de la comida o servivio], [Titulo comida o servivio, descripcion de la comida o servivio], etc...]}.
             No saques los precios de los productos. Y descripción si en el texto viene el producto y su descripcion.
         '''
         super().__init__(OpenAIclient, firstQuery)
 
-    def getMenuOrServicesFromHTML(self, urls: list[str]) -> dict[str, list[list[str]]]:
-        HTMLList: list[str] = [BeautifulSoup(requests.get(url[0]).content, 'html.parser').get_text() for url in urls]
+    def getMenuFromText(self, listTexts: list[str]):
+        query = ('\n'.join([content[0] for content in listTexts[1:]])) + self.query
+        response = self.OpenAIclient.chat.completions.create(
+            model = "gpt-4o",
+            response_format = {"type": "json_object"},
+            messages = self.messages + [{"role": "system", "content": query}],
+        )
+        parsedContent = '{' + response.choices[0].message.content.replace('  ', '').replace('\n', '').split('{')[1].split('}')[0] + '}'
+        return json.loads(parsedContent)
+    
+    def getMenuOrServicesFromHTML(self, urlsOrTexts: list[str]) -> dict[str, list[list[str]]]:
+        if urlsOrTexts[0][0] == 'codigo':
+            return self.getMenuFromText(urlsOrTexts)
+        try:
+            HTMLList: list[str] = [BeautifulSoup(requests.get(url[0]).text, 'html.parser').get_text() for url in urlsOrTexts]
+        except Exception:
+            return False
         result: list[str] = []
         for html in HTMLList:
-            if html.split(' ')[0] == '403': return False
+            if '403' in html: return False
             query: str = (html + '. ' + self.query).replace('\n', '').replace('  ', '')
             response = self.OpenAIclient.chat.completions.create(
                 model = "gpt-4o",
                 response_format = {"type": "json_object"},
                 messages = self.messages + [{"role": "system", "content": query}],
             )
-            result += json.loads(response.choices[0].message.content)['Items']
+            if 'Items' not in json.loads(response.choices[0].message.content): return False
+            result += json.loads(response.choices[0].message.content)['Items'] 
         return {'Items': result}
 
     def getMenuFromFile(self, urlsFiles: list[str]) -> dict[str, list[list[str]]]:
@@ -72,10 +88,10 @@ class MenuModel(Chat):
                     ],
                     }
                 ],
-                max_tokens=1000,
+                max_tokens=4096,
             )
-            splitted_content: list[str] = (response.choices[0].message.content.replace('  ', '')).split('\n')[1::]
-            result += json.loads(''.join(splitted_content[:len(splitted_content)-1:]))['Items']
+            parsedContent = '{' + response.choices[0].message.content.replace('  ', '').replace('\n', '').split('{')[1].split('}')[0] + '}'
+            result += json.loads(parsedContent)['Items']
         return {'Items': result}
     
     def getMenuFromPDF(self, urlsPDF: list[str]):
@@ -92,7 +108,8 @@ class MenuModel(Chat):
                 response_format = {"type": "json_object"},
                 messages = self.messages + [{"role": "system", "content": query}],
             )
-            result += json.loads(response.choices[0].message.content)['Items']
+            parsedContent = '{' + response.choices[0].message.content.replace('  ', '').replace('\n', '').split('{')[1].split('}')[0] + '}'
+            result += json.loads(parsedContent)['Items']
         return {'Items': result}
 
 
@@ -114,7 +131,9 @@ class PublicationsModel(Chat):
                 EXAMPLES
             Creame 3 nuevas publicaciones con productos / servicios del menu y una publicacion referenciando el tipo de comida / servicio y la cultura para que el local resulte atractivo.
             Las publicaciones no deben tener hashtags.
-            Usa un lenguaje simple, de sexto grado como mucho y escribe las publicaciones en el mismo idioma que los ejemplos, si son en español escribe en español de España.
+            El nombre del local es CLIENTNAME.
+            Usa un lenguaje simple, de sexto grado como mucho y escribe las publicaciones en el mismo idioma de las publicaciones de ejemplo, por ejemplo, si las publicaciones estan en italiano escribe en italiano
+            si son en español escribe en español de España.
             Trata de poner emojis y separar cada frase con saltos de linea.
             Devuelveme las publicaciones en formato json, hazlo con este formato: {publications: [texto publicacion 1, texto publicacion 2, etc...]}.
         '''.replace("ITEMS", parsedItems).replace("EXAMPLES", '\n'.join(examples)).replace("CLIENTNAME", clientName)

@@ -28,7 +28,7 @@ class Sheets:
   
         if not range_:
             allRows = self.getAllRows(sheetName)
-            range_: list[list[str]] = f"A{len(allRows)+1}:B{len(allRows)+len(values)+1}"
+            range_: list[list[str]] = f"A{len(allRows)+1}:F{len(allRows)+len(values)+1}"
         result = (
             self.service.spreadsheets()
             .values()

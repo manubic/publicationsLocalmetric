@@ -17,4 +17,5 @@ class Drive:
         ).execute()
  
         return raw_results['files'][0]['id'] if len(raw_results['files']) > 0 else False 
-        
+
+"mimeType = 'application/vnd.google-apps.folder' and name = 'Menú' and 'False' in parents"
