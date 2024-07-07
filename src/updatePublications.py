@@ -36,4 +36,10 @@ publicationsManager = PublicationsManager(
     Localmetric(config),
     creds,
 )
-publicationsManager.schedulePublications('Urogallo')
+values = publicationsManager.getAccountsID(dict=False)
+sheets = Sheets(config.GMBRedesSheetID, creds).getSheets(resFormat=set)
+database_result = sorted(SQL(config.DBUser, config.DBHost, config.DBName, config.DBPassword).query(f"SELECT name FROM accounts WHERE id IN ('{"', '".join(values).replace(' ', '')}') ORDER BY id"))
+for i, client in enumerate(database_result): 
+    if client[0] not in sheets: continue
+    print(client, i)
+    result = publicationsManager.schedulePublications(client[0])
