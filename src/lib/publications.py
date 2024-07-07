@@ -6,7 +6,6 @@ from lib.localmetricApi import Localmetric
 from typing import Callable
 from datetime import datetime, timedelta
 from openai import OpenAI
-from calendar import monthrange
 import random
 
 
