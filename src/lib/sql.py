@@ -9,7 +9,7 @@ class SQL:
         self.db = db
         self.password = password
 
-    def query(self, query: str) -> list[list[str]]:
+    def query(self, query: str) -> list[list[str]] | None:
         conn = mysql.connector.connect(
             user = self.user,
             host = self.host,

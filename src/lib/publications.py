@@ -21,21 +21,30 @@ class PublicationsManager:
         self.driveService = driveService
         self.localmetric = localmetric
         self.creds = creds
+        self.accountsID = self.getAccountsID()
     
     def getSheetMenuID(self, clientName: str) -> str:
         clientFolderID: str = self.driveService.search_fileOrFolder(f'mimeType = "application/vnd.google-apps.folder" and name = "{clientName}"')
         if not clientFolderID: return False
+
         menuFolderID: str = self.driveService.search_fileOrFolder(f"mimeType = 'application/vnd.google-apps.folder' and name = 'Menú' and '{clientFolderID}' in parents")
         menuSheetID: str = self.driveService.search_fileOrFolder(f"mimeType = 'application/vnd.google-apps.spreadsheet' and '{menuFolderID}' in parents")
         return menuSheetID
     
-    def getAccountsID(self, dict = True) -> dict[str, str]:
-        return (
-            {row[2].split(' - ')[1]: row[2].split(' - ')[0].replace('_', '/') for row in self.emailsSheet.getAllRows('Clientes')[1:]} if dict
-            else [row[5].replace('_', '/') for row in self.emailsSheet.getAllRows('Clientes')[1:] if len(row) > 5])
+    def getAccountsID(self, dict: bool = True) -> dict[str, str]:
+        return ({
+                self.database.query(f'SELECT name FROM accounts WHERE id = "{row[5].replace('_', '/')}"')[0][0]: row[5].replace('_', '/')
+                for row in self.emailsSheet.getAllRows('Clientes')[1:]
+            } if dict
+            else [
+                row[5].replace('_', '/')
+                for row in self.emailsSheet.getAllRows('Clientes')[1:]
+                if len(row) > 5
+            ]
+        )
     
     def get_itemsInfo(self, clientName: str) -> list[list | bool | Sheets | Callable]:
-        clientMenuSheetID = self.getSheetMenuID(clientName)
+        clientMenuSheetID: str = self.getSheetMenuID(clientName)
         if not clientMenuSheetID: return False
         menuSheet: Sheets = Sheets(clientMenuSheetID, self.creds)
         menuSheetSheets: list[str] = menuSheet.getSheets()
@@ -44,7 +53,7 @@ class PublicationsManager:
         if "Menu" in menuSheetSheets:
             return [[[item[0], item[1]] if len(item) > 1 else [item[0]] for item in menuSheet.getAllRows('Menu')], False]
 
-        self.menuChat = MenuModel(self.client)
+        self.menuChat: MenuModel = MenuModel(self.client)
         return [
             urls,
             self.menuChat.getMenuFromFile if urls[0][0].split('?')[0].split('.')[-1] in {'jpg', 'jpeg', 'png', 'webp', 'gif', 'pdf'} else self.menuChat.getMenuOrServicesFromHTML,
@@ -53,8 +62,10 @@ class PublicationsManager:
 
     def insertPublicationsToSheet(self, clientName: str) -> None | bool:
         itemsInfo: list[list | bool | Sheets | Callable] = self.get_itemsInfo(clientName)
-        if not itemsInfo: return False
-        if itemsInfo[1]:
+
+        if not itemsInfo:
+            return False
+        elif itemsInfo[1]:
             items: dict[str, list[list[str]]] = itemsInfo[1](itemsInfo[0])
             if not items: return False
             itemsInfo[2].create_sheet('Menu')
@@ -62,33 +73,35 @@ class PublicationsManager:
         else:
             items: list[list[str]] = itemsInfo[0]
         
-        self.publicationsChat = PublicationsModel(self.client)
-        allPublications = self.publicationsSheet.getAllRows(clientName)
+        self.publicationsChat: PublicationsModel = PublicationsModel(self.client)
+        allPublications: list[list[str]] = self.publicationsSheet.getAllRows(clientName)
         newPublications: list[str] = self.publicationsChat.createPublications(items, [random.choice(allPublications[2:])[1] for _ in range(3)], clientName)
 
-        postReference = datetime.fromisoformat(
-            f'{datetime.now().year}-{datetime.now().month}-30 12:00:00'
-        ) if self.publicationsSheet.getAllRows(clientName)[-1][5] < (
+        postReference: datetime = datetime.fromisoformat(
+            f'{datetime.now().year}-{('0' * (2 - len(str(datetime.now().month)))) + str(datetime.now().month)}-30T12:00:00.00Z'
+        ) if len(allPublications[-1]) <= 4 or allPublications[-1][5] < (
             datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S'
-        ) else (datetime.fromisoformat(self.publicationsSheet.getAllRows(clientName)[-1][5]) + timedelta(days=6))
-        postDates = [(postReference + timedelta(days=(i*7)+1)).strftime('%Y-%m-%d 12:00:00') for i in range(len(newPublications['publications']))] 
+        ) else (datetime.fromisoformat(allPublications[-1][5]) + timedelta(days=6))
+
+        postDates: list[str] = [(postReference + timedelta(days=(i*7)+1)).strftime('%Y-%m-%d 12:00:00') for i in range(len(newPublications['publications']))] 
         self.publicationsSheet.insertRows([["", publication, "", "", "", postDates[i]] for i, publication in enumerate(newPublications['publications'])], clientName)
     
-    def schedulePublications(self, clientName: str) -> None:
-        accountsID: dict[str, str] = self.getAccountsID()
-        lenguage: str = self.database.query(f'SELECT language_code FROM locations WHERE account_id = "{accountsID[clientName]}"')[0][0]
-        formattedDate: datetime = datetime.now()
+    def schedulePublications(self, clientName: str) -> list[str]:
+        lenguage: str = self.database.query(f'SELECT language_code FROM locations WHERE account_id = "{self.accountsID[clientName]}"')[0][0]
+        nowDate: datetime = datetime.now()
         
         for publication in self.publicationsSheet.getAllRows(clientName)[1:]:
-            if len(publication) != 7 or datetime.fromisoformat(publication[5]).day != formattedDate.day: continue            
+            if len(publication) != 7 or datetime.fromisoformat(publication[5]).day != nowDate.day:
+                continue
+    
             locationsID: list[str] = [
                 locationID 
                 for locationID in publication[6].split(', ')
             ] if publication[6] != 'Account' else [
                 locationID[0]
-                for locationID in self.database.query(f'SELECT id FROM locations WHERE account_id = "{accountsID[clientName]}"')
+                for locationID in self.database.query(f'SELECT id FROM locations WHERE account_id = "{self.accountsID[clientName]}"')
             ]
-            publicationAddedSites: dict[str, str] = [{"account_id": accountsID[clientName], "location_id": locationID} for locationID in locationsID]
+            publicationAddedSites: dict[str, str] = [{"account_id": self.accountsID[clientName], "location_id": locationID} for locationID in locationsID]
 
             mediaContent: str = self.localmetric.uploadDriveURLMediaFile(publication[4])
             newScheduledPostID: str = self.localmetric.createScheduledPost([
@@ -98,6 +111,6 @@ class PublicationsManager:
             newIDs: list[str] = self.localmetric.createLocalPost([
                 lenguage, publication[1], publication[2], 
                 publication[3], mediaContent, newScheduledPostID, 
-                (formattedDate).strftime('%Y-%m-%dT%H:%M:%S.00Z'), publicationAddedSites,
+                nowDate.strftime('%Y-%m-%dT%H:%M:%S.00Z'), publicationAddedSites,
             ])
             return newIDs

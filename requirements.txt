@@ -24,6 +24,7 @@ httpcore==1.0.5
 httplib2==0.22.0
 httpx==0.27.0
 idna==3.7
+iniconfig==2.0.0
 isodate==0.6.1
 itsdangerous==2.2.0
 libmagic==1.0
@@ -39,6 +40,7 @@ openai==1.35.7
 packaging==24.1
 pandas==2.2.2
 pathlib==1.0.1
+pluggy==1.5.0
 proto-plus==1.24.0
 protobuf==5.27.2
 prov==2.0.1
@@ -51,6 +53,7 @@ PyMuPDF==1.24.7
 PyMuPDFb==1.24.6
 pyparsing==3.1.2
 PyPDF2==3.0.1
+pytest==8.2.2
 python-dateutil==2.9.0.post0
 python-magic==0.4.27
 pytz==2024.1

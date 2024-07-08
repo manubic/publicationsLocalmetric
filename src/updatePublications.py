@@ -36,10 +36,17 @@ publicationsManager = PublicationsManager(
     Localmetric(config),
     creds,
 )
+
+exceptions: set[str] = {
+    'Concesionario Oficial Jaguar España', 'Bonaire', 'Bonaval', 'Buena morena', 'By the way', 'Chok', 'Club allard', 'Colmado Parranda', 'Tripti CoWorking', 'Uncovercity',
+    'Taberna Madrí Madre', 'Seb', 'Reketepizza', 'Primo Tavolino', 'Peritajes Médicos', 'New Machin', 'Nestseekers', 'Mitoa Pizzeria', 'Mi piace', "L'Ampadini", 'HUM2N', 'Geisha Gitana',
+    'Ford con respuesta', 'Ford Sin respuesta', 'Ford Portugal Con Reseñas', 'Ford Portugal Sin Respuesta', 'Enlagloria Salads', 'El Magraner Boig', 'EL KIOSKO Franquiciadpos', 'EL Kiosko',
+    'Edu Ramos', 'Desfase', 'Dermaline', 'Concesionario Oficial Jaguar Portugal', 'Concesionario Oficial Land Rover España', 'Concesionario Oficial Land Rover Portugal'
+}
 values = publicationsManager.getAccountsID(dict=False)
 sheets = Sheets(config.GMBRedesSheetID, creds).getSheets(resFormat=set)
 database_result = sorted(SQL(config.DBUser, config.DBHost, config.DBName, config.DBPassword).query(f"SELECT name FROM accounts WHERE id IN ('{"', '".join(values).replace(' ', '')}') ORDER BY id"))
-for i, client in enumerate(database_result): 
-    if client[0] not in sheets: continue
+for i, client in enumerate(database_result):
+    if client[0] not in sheets or client[0] in exceptions or client[0] != 'Urogallo': continue
     print(client, i)
     result = publicationsManager.schedulePublications(client[0])

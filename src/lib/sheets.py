@@ -18,17 +18,18 @@ class Sheets:
         values: list[str|int] = result.get("values", [])
         return values
     
-    def getSheets(self, resFormat = list) -> set[str]:
+    def getSheets(self, resFormat = list) -> set[str] | list[str]:
         service = build("sheets", "v4", credentials=self.creds)
         sheets = service.spreadsheets().get(spreadsheetId=self.sample_spreadsheet_id).execute().get('sheets', '')
         return resFormat(sheet['properties']['title'] for sheet in sheets)
 
-    def insertRows(self, values: list, sheetName: str, range_="") -> None:
+    def insertRows(self, values: list[list[str]], sheetName: str, range_ = "") -> None:
         body: dict[str, list[list[str]]] = {"values": values}
   
         if not range_:
-            allRows = self.getAllRows(sheetName)
-            range_: list[list[str]] = f"A{len(allRows)+1}:F{len(allRows)+len(values)+1}"
+            allRows: list[list[str]] = self.getAllRows(sheetName)
+            range_: str = f"A{len(allRows)+1}:F{len(allRows)+len(values)+1}"
+
         result = (
             self.service.spreadsheets()
             .values()
@@ -40,9 +41,8 @@ class Sheets:
             )
             .execute()
         )
-        return result
 
-    def create_sheet(self, title) -> str:
+    def create_sheet(self, title: str) -> str:
         requests = [{
             'addSheet': {
                 'properties': {
@@ -54,6 +54,6 @@ class Sheets:
                 }
             }
         }]
-        batch_update_request = {'requests': requests}
+        batch_update_request: dict[str, list] = {'requests': requests}
         response = self.service.spreadsheets().batchUpdate(spreadsheetId=self.sample_spreadsheet_id, body=batch_update_request).execute()
         return response.get('replies')[0].get('addSheet').get('properties').get('sheetId')

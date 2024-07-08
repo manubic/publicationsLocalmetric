@@ -37,13 +37,13 @@ class MenuModel(Chat):
         super().__init__(OpenAIclient, firstQuery)
 
     def getMenuFromText(self, listTexts: list[str]):
-        query = ('\n'.join([content[0] for content in listTexts[1:]])) + self.query
+        query: str = ('\n'.join([content[0] for content in listTexts[1:]])) + '. ' + self.query
         response = self.OpenAIclient.chat.completions.create(
             model = "gpt-4o",
             response_format = {"type": "json_object"},
             messages = self.messages + [{"role": "system", "content": query}],
         )
-        parsedContent = '{' + response.choices[0].message.content.replace('  ', '').replace('\n', '').split('{')[1].split('}')[0] + '}'
+        parsedContent: str = '{' + response.choices[0].message.content.replace('  ', '').replace('\n', '').split('{')[1].split('}')[0] + '}'
         return json.loads(parsedContent)
     
     def getMenuOrServicesFromHTML(self, urlsOrTexts: list[str]) -> dict[str, list[list[str]]]:
@@ -70,27 +70,19 @@ class MenuModel(Chat):
         if urlsFiles[0][0].split('?')[0].split('.')[-1] == 'pdf':
             return self.getMenuFromPDF(urlsFiles)
 
-        result = []
+        result: list[list[str]] = []
         for url in urlsFiles:
             response = self.OpenAIclient.chat.completions.create(
                 model="gpt-4o",
-                messages=[
-                    {
+                messages = [{
                     "role": "user",
                     "content": [
                         {"type": "text", "text": self.query},
-                        {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": url[0]
-                        },
-                        },
-                    ],
-                    }
-                ],
-                max_tokens=4096,
+                        {"type": "image_url", "image_url": {"url": url[0]}},
+                    ]
+                }], max_tokens=4096,
             )
-            parsedContent = '{' + response.choices[0].message.content.replace('  ', '').replace('\n', '').split('{')[1].split('}')[0] + '}'
+            parsedContent: str = '{' + response.choices[0].message.content.replace('  ', '').replace('\n', '').split('{')[1].split('}')[0] + '}'
             result += json.loads(parsedContent)['Items']
         return {'Items': result}
     
@@ -100,7 +92,7 @@ class MenuModel(Chat):
             pdf = PdfReader(BytesIO(requests.get(url[0]).content))
             urlsPDFcontent.append(''.join([pdf.pages[i].extract_text() for i in range(len(pdf.pages))]))
 
-        result = []
+        result: list[list[str]] = []
         for text in urlsPDFcontent:
             query: str = (text + self.query).replace('\n', '').replace('  ', '')
             response = self.OpenAIclient.chat.completions.create(
@@ -108,7 +100,7 @@ class MenuModel(Chat):
                 response_format = {"type": "json_object"},
                 messages = self.messages + [{"role": "system", "content": query}],
             )
-            parsedContent = '{' + response.choices[0].message.content.replace('  ', '').replace('\n', '').split('{')[1].split('}')[0] + '}'
+            parsedContent: str = '{' + response.choices[0].message.content.replace('  ', '').replace('\n', '').split('{')[1].split('}')[0] + '}'
             result += json.loads(parsedContent)['Items']
         return {'Items': result}
 
@@ -130,8 +122,7 @@ class PublicationsModel(Chat):
             Y en base a estas publicaciones que te daran un ejemplo y el nombre de la ciudad donde se encuentra el local:
                 EXAMPLES
             Creame 3 nuevas publicaciones con productos / servicios del menu y una publicacion referenciando el tipo de comida / servicio y la cultura para que el local resulte atractivo.
-            Las publicaciones no deben tener hashtags.
-            El nombre del local es CLIENTNAME.
+            Las publicaciones no deben tener hashtags. El nombre del local es CLIENTNAME.
             Usa un lenguaje simple, de sexto grado como mucho y escribe las publicaciones en el mismo idioma de las publicaciones de ejemplo, por ejemplo, si las publicaciones estan en italiano escribe en italiano
             si son en español escribe en español de España.
             Trata de poner emojis y separar cada frase con saltos de linea.

@@ -12,8 +12,8 @@ class Localmetric:
             data=f'username={config.LocApiName}&password={config.LocApiKey}&grant_type=password'
         ).text)['access_token']
 
-    def uploadDriveURLMediaFile(self, driveURL: str) -> str:
-        newFileID = json.loads(requests.post(
+    def uploadDriveURLMediaFile(self, driveURL: str) -> dict[str, str]:
+        newFileID: str = json.loads(requests.post(
             'https://api.localmetric.es/api/media_files',
             headers={
                 'Authorization': f'Bearer {self.credentials}',
@@ -28,7 +28,7 @@ class Localmetric:
         }
     
     def createScheduledPost(self, options: list[str]) -> str:
-        result = requests.post(
+        result: str = requests.post(
             'https://api.localmetric.es/api/scheduled_local_posts',
             headers={
                 'Authorization': f'Bearer {self.credentials}',
@@ -46,23 +46,22 @@ class Localmetric:
         ).text
         return json.loads(result)['id']
     
-    def createLocalPost(self, options: list[str]) -> None:
+    def createLocalPost(self, options: list[str]) -> list[str]:
         result = []
         for publicationSite in options[7]:
             body = {
-                    "id": f"localPosts/{''.join([str(random.randint(0, 9)) for _ in range(24)])}", "language_code": options[0],
-                    "summary": options[1], "call_to_action_type": options[2],
-                    "call_to_action_url": options[3] if options[2] != 'CALL' else '', "event_title": "",
-                    "event_schedule_start": "", "event_schedule_end": "", "state": "SCHEDULED",
-                    "media": [options[4]], "search_url": "", "topic_type": "STANDARD", "alert_type": "ALERT_TYPE_UNSPECIFIED",
-                    "offer_coupon_code": "", "offer_redeem_online_url": "", "offer_terms_conditions": "",
-                    "scheduled_local_post_id": options[5],
-                    "create_time": options[6],
-                    "update_time": options[6]
-                }
+                "id": f"localPosts/{''.join([str(random.randint(0, 9)) for _ in range(24)])}", "language_code": options[0],
+                "summary": options[1], "call_to_action_type": options[2],
+                "call_to_action_url": options[3] if options[2] != 'CALL' else '', "event_title": "",
+                "event_schedule_start": "", "event_schedule_end": "", "state": "SCHEDULED",
+                "media": [options[4]], "search_url": "", "topic_type": "STANDARD", "alert_type": "ALERT_TYPE_UNSPECIFIED",
+                "offer_coupon_code": "", "offer_redeem_online_url": "", "offer_terms_conditions": "",
+                "scheduled_local_post_id": options[5],
+                "create_time": options[6],
+                "update_time": options[6]
+            }
             body.update(publicationSite)
-            print(body)
-            newPost = requests.post(
+            newPost: str = requests.post(
                 'https://api.localmetric.es/api/local_posts',
                 headers={
                     'Authorization': f'Bearer {self.credentials}',
