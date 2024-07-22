@@ -93,8 +93,8 @@ class PublicationsManager:
         for publication in self.publicationsSheet.getAllRows(clientName)[1:]:
             fecha = datetime.fromisoformat(publication[5]) if publication[5] else False
             if (len(publication) != 7 or not publication[5]
-                or (fecha.day != nowDate.day
-                and fecha.month != nowDate.month)):
+                or fecha.day != nowDate.day
+                or fecha.month != nowDate.month):
                 continue
     
             locationsID: list[str] = [
