@@ -19,7 +19,6 @@ class SQL:
         cursor = conn.cursor()
         cursor.execute(query)
         if cursor.with_rows:
-            result=[[column for column in row] for row in cursor.fetchall()]
-            return result
+            return [[column for column in row] for row in cursor.fetchall()]     
         conn.commit()
 

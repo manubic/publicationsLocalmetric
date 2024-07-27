@@ -4,7 +4,9 @@ import json, requests, io, random
 
 class Localmetric:
     def __init__(self, config) -> None:
-        self.credentials: str = json.loads(requests.post("https://api.localmetric.es/api/auth/token",
+        self.LocalmetricApiURL = config.LocalmetricApiURL
+
+        self.credentials: str = json.loads(requests.post(f"{self.LocalmetricApiURL}/auth/token",
             headers={
                 'accept': 'application/json',
                 'Content-Type': 'application/x-www-form-urlencoded'
@@ -14,7 +16,7 @@ class Localmetric:
 
     def uploadDriveURLMediaFile(self, driveURL: str) -> dict[str, str]:
         newFileID: str = json.loads(requests.post(
-            'https://api.localmetric.es/api/media_files',
+            f'{self.LocalmetricApiURL}/media_files',
             headers={
                 'Authorization': f'Bearer {self.credentials}',
                 'Content-Type': 'application/octet-stream',
@@ -23,13 +25,13 @@ class Localmetric:
         ).text)['mediaFileId']
 
         return {
-            'sourceUrl': f'https://api.localmetric.es/api/media_files/{newFileID}',
+            'sourceUrl': f'{self.LocalmetricApiURL}/media_files/{newFileID}',
             'mediaFormat': 'PHOTO'
         }
     
     def createScheduledPost(self, options: list[str]) -> str:
         result: str = requests.post(
-            'https://api.localmetric.es/api/scheduled_local_posts',
+            f'{self.LocalmetricApiURL}/scheduled_local_posts',
             headers={
                 'Authorization': f'Bearer {self.credentials}',
                 'Content-Type': 'application/json',
@@ -62,7 +64,7 @@ class Localmetric:
             }
             body.update(publicationSite)
             newPost: str = requests.post(
-                'https://api.localmetric.es/api/local_posts',
+                f'{self.LocalmetricApiURL}/api/local_posts',
                 headers={
                     'Authorization': f'Bearer {self.credentials}',
                     'Content-Type': 'application/json',
