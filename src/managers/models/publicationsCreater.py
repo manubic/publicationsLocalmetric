@@ -60,7 +60,7 @@ class PublicationsCreater(__BaseManager):
 
         postReference: datetime = datetime.fromisoformat(
             f'{datetime.now().year}-{('0' * (2 - len(str(datetime.now().month)))) + str(datetime.now().month)}-30T12:00:00.00Z'
-        ) if len(allPublications[-1]) <= 4 or allPublications[-1][5] < (
+        ) if len(allPublications[-1]) > 4 and allPublications[-1][5] < (
             datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S'
         ) else (datetime.fromisoformat(allPublications[-1][5]) + timedelta(days=6))
 
