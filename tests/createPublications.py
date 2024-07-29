@@ -46,4 +46,4 @@ def publicationsManagerTest():
     for i, client in enumerate(database_result): 
         print(client, i)
         if client[0] not in sheets and client[0] in config.Exceptions: continue
-        publicationsManager.insertPublicationsToSheet(client[0])
+        publicationsManager.createPublications(client[0])

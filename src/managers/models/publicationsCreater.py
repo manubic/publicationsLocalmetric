@@ -40,7 +40,7 @@ class PublicationsCreater(__BaseManager):
         ]
 
 
-    def insertPublicationsToSheet(self, clientName: str) -> None | bool:
+    def createPublications(self, clientName: str) -> None | bool:
         itemsInfo: list[list | bool | Sheets | Callable] = self.get_itemsInfo(clientName)
 
         if not itemsInfo:
