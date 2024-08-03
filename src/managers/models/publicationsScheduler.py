@@ -24,7 +24,9 @@ class PublicationsScheduler(__BaseManager):
         for publication in self.publicationsSheet.getAllRows(clientName)[1:]:
             updateDate = datetime.fromisoformat(publication[5].replace('/', '-')) if publication[5] else False
             if (
-                len(publication) != 7 or not updateDate
+                len(publication) != 7
+                or not updateDate
+                or not publication[3]
                 or updateDate.day != nowDate.day
                 or updateDate.month != nowDate.month
                 or updateDate.year != nowDate.year
