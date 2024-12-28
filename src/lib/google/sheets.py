@@ -1,14 +1,13 @@
 from googleapiclient.discovery import build
 
 
-
 class Sheets:
     def __init__(self, _id: str, creds) -> None:
         self.sample_spreadsheet_id: str = _id
         self.creds = creds
         self.service = build("sheets", "v4", credentials=self.creds)
 
-    def getAllRows(self, sheet_name: str) -> list[list[str]]:
+    def get_all_rows(self, sheet_name: str) -> list[list[str]]:
         sheet = self.service.spreadsheets()
         result = (
             sheet.values()
@@ -18,24 +17,24 @@ class Sheets:
         values: list[str|int] = result.get("values", [])
         return values
     
-    def getSheets(self, resFormat = list) -> set[str] | list[str]:
+    def get_sheets(self, res_format = list) -> set[str] | list[str]:
         service = build("sheets", "v4", credentials=self.creds)
         sheets = service.spreadsheets().get(spreadsheetId=self.sample_spreadsheet_id).execute().get('sheets', '')
-        return resFormat(sheet['properties']['title'] for sheet in sheets)
+        return res_format(sheet['properties']['title'] for sheet in sheets)
 
-    def insertRows(self, values: list[list[str]], sheetName: str, range_ = "") -> None:
+    def insert_rows(self, values: list[list[str]], sheet_name: str, range_ = "") -> None:
         body: dict[str, list[list[str]]] = {"values": values}
   
         if not range_:
-            allRows: list[list[str]] = self.getAllRows(sheetName)
-            range_: str = f"A{len(allRows)+1}:F{len(allRows)+len(values)+1}"
+            all_rows: list[list[str]] = self.get_all_rows(sheet_name)
+            range_: str = f"A{len(all_rows)+1}:F{len(all_rows)+len(values)+1}"
 
-        result = (
+        (
             self.service.spreadsheets()
             .values()
             .update(
                 spreadsheetId=self.sample_spreadsheet_id,
-                range=f'{sheetName}!{range_}',
+                range=f'{sheet_name}!{range_}',
                 valueInputOption='RAW',
                 body=body,
             )
